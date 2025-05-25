@@ -91,8 +91,8 @@ class BiddingRulesService(
                     totalCostEstimate = totalCost.setScale(2, RoundingMode.HALF_UP),
                     deliveryDays = shippingDetail.estimatedDeliveryDays, // Use shipping service's day estimate
                     inventoryCount = offer.inventoryCount,
-                    currentDiscountPercentFromMsrp = discountFromMsrp.setScale(2, RoundingMode.HALF_UP)
-                    // incentives initially from offer if any, rules might add more client-side
+                    currentDiscountPercentFromMsrp = discountFromMsrp.setScale(2, RoundingMode.HALF_UP),
+                    incentives = null // TODO: Implement incentives from vendor rules in Iteration 2
                 )
             )
 

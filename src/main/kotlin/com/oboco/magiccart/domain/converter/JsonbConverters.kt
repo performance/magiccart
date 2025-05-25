@@ -32,7 +32,11 @@ class TriggerConditionToPgObjectConverter(private val objectMapper: ObjectMapper
 @ReadingConverter
 class PgObjectToTriggerConditionConverter(private val objectMapper: ObjectMapper) : Converter<PGobject, TriggerCondition> {
     override fun convert(source: PGobject): TriggerCondition? {
-        return source.value?.let { objectMapper.readValue(it, TriggerCondition::class.java) }
+        val value = source.value
+        if (value.isNullOrBlank() || value == "null") {
+            return null
+        }
+        return objectMapper.readValue(value, TriggerCondition::class.java)
     }
 }
 
@@ -49,7 +53,11 @@ class CounterActionToPgObjectConverter(private val objectMapper: ObjectMapper) :
 @ReadingConverter
 class PgObjectToCounterActionConverter(private val objectMapper: ObjectMapper) : Converter<PGobject, CounterAction> {
     override fun convert(source: PGobject): CounterAction? {
-        return source.value?.let { objectMapper.readValue(it, CounterAction::class.java) }
+        val value = source.value
+        if (value.isNullOrBlank() || value == "null") {
+            return null
+        }
+        return objectMapper.readValue(value, CounterAction::class.java)
     }
 }
 
@@ -70,7 +78,11 @@ class IncentivesMapToPgObjectConverter(private val objectMapper: ObjectMapper) :
 @ReadingConverter
 class PgObjectToIncentivesMapConverter(private val objectMapper: ObjectMapper) : Converter<PGobject, Map<String, Boolean>> {
     override fun convert(source: PGobject): Map<String, Boolean>? {
-        return source.value?.let { objectMapper.readValue(it, object : TypeReference<Map<String, Boolean>>() {}) }
+        val value = source.value
+        if (value.isNullOrBlank() || value == "null") {
+            return null
+        }
+        return objectMapper.readValue(value, object : TypeReference<Map<String, Boolean>>() {})
     }
 }
 
@@ -95,6 +107,10 @@ class SpecificationsStringToPgObjectConverter(private val objectMapper: ObjectMa
 @ReadingConverter
 class PgObjectToSpecificationsStringConverter : Converter<PGobject, String> {
     override fun convert(source: PGobject): String? {
-        return source.value
+        val value = source.value
+        if (value.isNullOrBlank() || value == "null") {
+            return null
+        }
+        return value
     }
 }
