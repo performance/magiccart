@@ -11,7 +11,9 @@
       "Bash(brew services:*)",
       "Bash(/Applications/Postgres.app/Contents/Versions/16/bin/psql:*)",
       "Bash(grep:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(mkdir:*)",
+      "Bash(cp:*)"
     ],
     "deny": []
   }
