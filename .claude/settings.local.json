@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(spring:*)",
+      "Bash(mv:*)",
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(./gradlew:*)",
+      "Bash(pg_isready:*)",
+      "Bash(timeout:*)",
+      "Bash(brew services:*)",
+      "Bash(/Applications/Postgres.app/Contents/Versions/16/bin/psql:*)",
+      "Bash(grep:*)",
+      "Bash(curl:*)"
+    ],
+    "deny": []
+  }
+}
