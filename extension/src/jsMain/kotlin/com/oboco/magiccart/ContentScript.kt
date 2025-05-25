@@ -1,39 +1,53 @@
 package com.oboco.magiccart
 
-import com.oboco.magiccart.ui.BiddingOverlay
+import com.oboco.magiccart.ui.BiddingController
 import com.oboco.magiccart.utils.ErrorHandler
 import kotlinx.browser.document
 import kotlinx.browser.window
 import org.w3c.dom.Element
 import org.w3c.dom.NodeList
-import react.create
-import react.dom.client.createRoot
+
+// Global flag to prevent multiple initializations
+private var isInitialized = false
+private var initializationAttempted = false
 
 /**
  * Content script entry point for MagicCart Chrome extension
  * Detects product pages and injects the bidding overlay
  */
 fun initializeMagicCart() {
+    if (initializationAttempted) {
+        console.log("MagicCart: Initialization already attempted, skipping")
+        return
+    }
+    
+    initializationAttempted = true
     // Try immediate initialization
     console.log("MagicCart: Starting initialization...")
     
     // Try immediately
-    startMagicCart()
+    if (startMagicCart()) {
+        return // Success, no need for other attempts
+    }
     
     // Also try when DOM is ready (in case content loads later)
     document.addEventListener("DOMContentLoaded", {
-        console.log("MagicCart: DOMContentLoaded triggered")
-        startMagicCart()
+        if (!isInitialized) {
+            console.log("MagicCart: DOMContentLoaded triggered")
+            startMagicCart()
+        }
     })
     
     // Also try with a delay for SPA content
     window.setTimeout({
-        console.log("MagicCart: Delayed initialization (for dynamic content)")
-        startMagicCart()
+        if (!isInitialized) {
+            console.log("MagicCart: Delayed initialization (for dynamic content)")
+            startMagicCart()
+        }
     }, 2000)
 }
 
-private fun startMagicCart() {
+private fun startMagicCart(): Boolean {
     console.log("MagicCart: Initializing on ${window.location.hostname}")
     
     try {
@@ -42,12 +56,16 @@ private fun startMagicCart() {
         if (productInfo != null) {
             console.log("MagicCart: Product detected", productInfo)
             injectBiddingOverlay(productInfo)
+            isInitialized = true
+            return true
         } else {
             console.log("MagicCart: No product detected on this page")
+            return false
         }
     } catch (e: Exception) {
         console.error("MagicCart: Error during initialization", e)
         ErrorHandler.showUserFriendlyError(ErrorHandler.handleExtensionError(e))
+        return false
     }
 }
 
@@ -231,30 +249,26 @@ private fun injectBiddingOverlay(productInfo: ProductInfo) {
             return
         }
         
-        // Create container for React component
+        // Create container for bidding overlay
         val container = document.createElement("div").apply {
             id = "magiccart-overlay-container"
         }
         
         document.body?.appendChild(container)
         
-        // Create and render React component
-        val root = createRoot(container)
-        val biddingOverlayElement = BiddingOverlay.create {
-            this.productInfo = productInfo
-            this.onClose = {
+        // Create controller and render overlay
+        val biddingController = BiddingController(
+            productInfo = productInfo,
+            onClose = {
                 console.log("MagicCart: Closing overlay")
                 container.remove()
             }
-            this.onStartNegotiation = { product ->
-                console.log("MagicCart: Starting negotiation for", product.name)
-                // TODO: Phase 2.B - Connect to API client
-            }
-        }
+        )
         
-        root.render(biddingOverlayElement)
+        container.innerHTML = biddingController.getCurrentHtml()
+        biddingController.setupEventListeners()
         
-        console.log("MagicCart: React overlay injected successfully")
+        console.log("MagicCart: Enhanced bidding overlay injected successfully")
         
     } catch (e: Exception) {
         console.error("MagicCart: Error injecting overlay", e)
