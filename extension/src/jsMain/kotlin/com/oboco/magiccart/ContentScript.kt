@@ -1,50 +1,73 @@
 package com.oboco.magiccart
 
-import com.oboco.magiccart.ui.EnhancedApp
+import com.oboco.magiccart.utils.ErrorHandler
 import kotlinx.browser.document
 import kotlinx.browser.window
-import react.create
-import react.dom.client.createRoot
+import org.w3c.dom.Element
+import org.w3c.dom.NodeList
 
 /**
  * Content script entry point for MagicCart Chrome extension
  * Detects product pages and injects the bidding overlay
  */
 fun initializeMagicCart() {
-    window.onload = {
+    // Try immediate initialization
+    console.log("MagicCart: Starting initialization...")
+    
+    // Try immediately
+    startMagicCart()
+    
+    // Also try when DOM is ready (in case content loads later)
+    document.addEventListener("DOMContentLoaded", {
+        console.log("MagicCart: DOMContentLoaded triggered")
         startMagicCart()
-    }
+    })
+    
+    // Also try with a delay for SPA content
+    window.setTimeout({
+        console.log("MagicCart: Delayed initialization (for dynamic content)")
+        startMagicCart()
+    }, 2000)
 }
 
 private fun startMagicCart() {
     console.log("MagicCart: Initializing on ${window.location.hostname}")
     
-    // Detect if we're on a supported product page
-    val productInfo = detectProductPage()
-    if (productInfo != null) {
-        console.log("MagicCart: Product detected", productInfo)
-        injectBiddingOverlay(productInfo)
-    } else {
-        console.log("MagicCart: No product detected on this page")
+    try {
+        // Detect if we're on a supported product page
+        val productInfo = detectProductPage()
+        if (productInfo != null) {
+            console.log("MagicCart: Product detected", productInfo)
+            injectBiddingOverlay(productInfo)
+        } else {
+            console.log("MagicCart: No product detected on this page")
+        }
+    } catch (e: Exception) {
+        console.error("MagicCart: Error during initialization", e)
+        ErrorHandler.showUserFriendlyError(ErrorHandler.handleExtensionError(e))
     }
 }
 
 private fun detectProductPage(): ProductInfo? {
     val hostname = window.location.hostname
-    val pathname = window.location.pathname
     
-    return when {
-        hostname.contains("amazon.com") -> detectAmazonProduct()
-        hostname.contains("bestbuy.com") -> detectBestBuyProduct()
-        hostname.contains("walmart.com") -> detectWalmartProduct()
-        hostname.contains("target.com") -> detectTargetProduct()
-        hostname.contains("ebay.com") -> detectEbayProduct()
-        else -> null
+    return try {
+        when {
+            hostname.contains("amazon.com") -> detectAmazonProduct()
+            hostname.contains("bestbuy.com") -> detectBestBuyProduct()
+            hostname.contains("walmart.com") -> detectWalmartProduct()
+            hostname.contains("target.com") -> detectTargetProduct()
+            hostname.contains("ebay.com") -> detectEbayProduct()
+            else -> null
+        }
+    } catch (e: Exception) {
+        console.error("MagicCart: Error detecting product", e)
+        ErrorHandler.showUserFriendlyError(ErrorHandler.handleProductDetectionError(e))
+        null
     }
 }
 
 private fun detectAmazonProduct(): ProductInfo? {
-    // Amazon product page detection logic
     val titleElement = document.querySelector("#productTitle") ?: document.querySelector("[data-automation-id='product-title']")
     val priceElement = document.querySelector(".a-price-whole") ?: document.querySelector(".a-offscreen")
     val categoryElement = document.querySelector("#wayfinding-breadcrumbs_feature_div a")
@@ -66,7 +89,6 @@ private fun detectAmazonProduct(): ProductInfo? {
 }
 
 private fun detectBestBuyProduct(): ProductInfo? {
-    // Best Buy product page detection logic
     val titleElement = document.querySelector(".sku-title h1") ?: document.querySelector("[data-automation-id='product-title']")
     val priceElement = document.querySelector(".pricing-price__range .sr-only") 
         ?: document.querySelector(".current-price .sr-only")
@@ -86,33 +108,6 @@ private fun detectBestBuyProduct(): ProductInfo? {
         )
     }
     return null
-}
-
-private fun injectBiddingOverlay(productInfo: ProductInfo) {
-    // Create container for React app
-    val container = document.createElement("div").apply {
-        id = "magiccart-overlay-container"
-        setAttribute("style", """
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 999999;
-            width: 400px;
-            max-height: 80vh;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        """.trimIndent())
-    }
-    
-    document.body?.appendChild(container)
-    
-    // Mount React app
-    val root = createRoot(container)
-    root.render(EnhancedApp.create {
-        this.productInfo = productInfo
-    })
 }
 
 private fun detectWalmartProduct(): ProductInfo? {
@@ -180,13 +175,11 @@ private fun detectEbayProduct(): ProductInfo? {
 }
 
 private fun extractPrice(priceText: String): Double {
-    // Remove currency symbols and common formatting
     val cleanText = priceText.replace("[$,\\s]".toRegex(), "")
         .replace("USD", "")
         .replace("current price", "", ignoreCase = true)
         .trim()
     
-    // Extract first number sequence that looks like a price
     val priceMatch = "\\d+\\.?\\d*".toRegex().find(cleanText)
     return priceMatch?.value?.toDoubleOrNull() ?: 0.0
 }
@@ -221,11 +214,104 @@ private fun detectCategoryFromBreadcrumbs(): String? {
     for (selector in breadcrumbSelectors) {
         val breadcrumbs = document.querySelectorAll(selector)
         if (breadcrumbs.length > 1) {
-            // Return the second breadcrumb item (first is usually "Home")
-            return breadcrumbs[1]?.textContent?.trim()
+            return breadcrumbs.item(1)?.textContent?.trim()
         }
     }
     return null
+}
+
+private fun injectBiddingOverlay(productInfo: ProductInfo) {
+    try {
+        // Check if overlay already exists
+        if (document.getElementById("magiccart-overlay-container") != null) {
+            console.log("MagicCart: Overlay already exists, skipping injection")
+            return
+        }
+        
+        // Create enhanced HTML overlay (future: replace with React components)
+        val container = document.createElement("div").apply {
+            id = "magiccart-overlay-container"
+            innerHTML = """
+                <div style="
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    z-index: 999999;
+                    width: 350px;
+                    background: white;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    border: 1px solid #e0e0e0;
+                ">
+                    <div style="
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        padding: 16px;
+                        border-bottom: 1px solid #f0f0f0;
+                    ">
+                        <h3 style="margin: 0; font-size: 18px; color: #333;">🛒 MagicCart</h3>
+                        <button onclick="this.closest('#magiccart-overlay-container').remove()" style="
+                            background: transparent;
+                            border: none;
+                            font-size: 20px;
+                            cursor: pointer;
+                            padding: 4px;
+                        ">×</button>
+                    </div>
+                    <div style="padding: 16px;">
+                        <div style="margin-bottom: 16px;">
+                            <p style="margin: 0 0 8px 0; font-size: 14px; font-weight: 500; color: #333;">
+                                Product: ${productInfo.name}
+                            </p>
+                            <p style="margin: 0 0 8px 0; font-size: 14px; color: #666;">
+                                Current Price: $${productInfo.currentPrice}
+                            </p>
+                            <p style="margin: 0 0 8px 0; font-size: 14px; color: #666;">
+                                Vendor: ${productInfo.vendor}
+                            </p>
+                            <p style="margin: 0; font-size: 12px; color: #999;">
+                                Category: ${productInfo.category}
+                            </p>
+                        </div>
+                        <button onclick="window.magicCartStartNegotiation && window.magicCartStartNegotiation()" style="
+                            width: 100%;
+                            padding: 12px 16px;
+                            background-color: #007bff;
+                            color: white;
+                            border: none;
+                            border-radius: 6px;
+                            font-size: 14px;
+                            font-weight: 500;
+                            cursor: pointer;
+                        ">Start Discount Negotiation</button>
+                        <div id="magiccart-status" style="
+                            margin-top: 12px;
+                            padding: 8px;
+                            background: #f8f9fa;
+                            border-radius: 4px;
+                            font-size: 12px;
+                            color: #666;
+                            text-align: center;
+                            display: none;
+                        ">Ready for Phase 2.B: API Integration</div>
+                    </div>
+                </div>
+            """.trimIndent()
+        }
+        
+        document.body?.appendChild(container)
+        
+        // Set up global function for future API integration
+        js("window.magicCartStartNegotiation = function() { console.log('MagicCart: Starting negotiation for', arguments[0] || 'detected product'); document.getElementById('magiccart-status').style.display = 'block'; }")
+        
+        console.log("MagicCart: Overlay injected successfully")
+        
+    } catch (e: Exception) {
+        console.error("MagicCart: Error injecting overlay", e)
+        ErrorHandler.showUserFriendlyError("Failed to display MagicCart interface")
+    }
 }
 
 data class ProductInfo(

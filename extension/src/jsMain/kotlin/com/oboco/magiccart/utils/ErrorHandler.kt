@@ -74,29 +74,12 @@ object ErrorHandler {
     }
     
     private fun logError(error: Throwable, context: String) {
-        val timestamp = js("new Date().toISOString()")
-        val errorInfo = js("""({
-            timestamp: $timestamp,
-            context: "$context",
-            message: "${error.message}",
-            stack: "${error.stackTraceToString()}",
-            url: window.location.href,
-            userAgent: navigator.userAgent
-        })""")
+        // Simplified logging for Phase 2.A
+        console.error("MagicCart Error [$context]:", error.message ?: "Unknown error")
+        console.error("Error details:", error)
         
-        console.error("MagicCart Error [$context]:", errorInfo)
-        
-        // Store error for debugging (limit to last 10 errors)
-        try {
-            chrome.storage.local.get(js("['errorLog']")) { result ->
-                val errorLog = (result.errorLog as? Array<dynamic>) ?: arrayOf()
-                val updatedLog = arrayOf(errorInfo, *errorLog).take(10).toTypedArray()
-                
-                chrome.storage.local.set(js("""({ errorLog: $updatedLog })"""))
-            }
-        } catch (e: Exception) {
-            console.warn("Failed to store error log:", e)
-        }
+        // TODO: Phase 2.B - Implement proper error storage and reporting
+        // For now, just log to console for debugging
     }
     
     fun showUserFriendlyError(message: String, isTemporary: Boolean = true) {
@@ -132,17 +115,4 @@ object ErrorHandler {
             }, 5000)
         }
     }
-    
-    fun clearErrorLog() {
-        chrome.storage.local.remove(js("['errorLog']"))
-    }
-    
-    fun getErrorLog(callback: (Array<dynamic>) -> Unit) {
-        chrome.storage.local.get(js("['errorLog']")) { result ->
-            callback((result.errorLog as? Array<dynamic>) ?: arrayOf())
-        }
-    }
 }
-
-// Extension of existing chrome declarations
-external val chrome: dynamic

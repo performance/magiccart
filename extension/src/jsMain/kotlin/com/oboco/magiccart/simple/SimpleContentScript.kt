@@ -1,16 +1,12 @@
 package com.oboco.magiccart
 
-import com.oboco.magiccart.ui.EnhancedApp
 import kotlinx.browser.document
 import kotlinx.browser.window
-import react.create
-import react.dom.client.createRoot
 
 /**
- * Content script entry point for MagicCart Chrome extension
- * Detects product pages and injects the bidding overlay
+ * Simplified content script for initial testing
  */
-fun initializeMagicCart() {
+fun initializeSimpleMagicCart() {
     window.onload = {
         startMagicCart()
     }
@@ -23,15 +19,14 @@ private fun startMagicCart() {
     val productInfo = detectProductPage()
     if (productInfo != null) {
         console.log("MagicCart: Product detected", productInfo)
-        injectBiddingOverlay(productInfo)
+        injectSimpleOverlay(productInfo)
     } else {
         console.log("MagicCart: No product detected on this page")
     }
 }
 
-private fun detectProductPage(): ProductInfo? {
+private fun detectProductPage(): SimpleProductInfo? {
     val hostname = window.location.hostname
-    val pathname = window.location.pathname
     
     return when {
         hostname.contains("amazon.com") -> detectAmazonProduct()
@@ -43,8 +38,7 @@ private fun detectProductPage(): ProductInfo? {
     }
 }
 
-private fun detectAmazonProduct(): ProductInfo? {
-    // Amazon product page detection logic
+private fun detectAmazonProduct(): SimpleProductInfo? {
     val titleElement = document.querySelector("#productTitle") ?: document.querySelector("[data-automation-id='product-title']")
     val priceElement = document.querySelector(".a-price-whole") ?: document.querySelector(".a-offscreen")
     val categoryElement = document.querySelector("#wayfinding-breadcrumbs_feature_div a")
@@ -53,7 +47,7 @@ private fun detectAmazonProduct(): ProductInfo? {
         val priceText = priceElement?.textContent ?: "0"
         val price = extractPrice(priceText)
         
-        return ProductInfo(
+        return SimpleProductInfo(
             name = titleElement.textContent?.trim() ?: "Unknown Product",
             currentPrice = price,
             vendor = "Amazon",
@@ -65,8 +59,7 @@ private fun detectAmazonProduct(): ProductInfo? {
     return null
 }
 
-private fun detectBestBuyProduct(): ProductInfo? {
-    // Best Buy product page detection logic
+private fun detectBestBuyProduct(): SimpleProductInfo? {
     val titleElement = document.querySelector(".sku-title h1") ?: document.querySelector("[data-automation-id='product-title']")
     val priceElement = document.querySelector(".pricing-price__range .sr-only") 
         ?: document.querySelector(".current-price .sr-only")
@@ -76,7 +69,7 @@ private fun detectBestBuyProduct(): ProductInfo? {
         val priceText = priceElement?.textContent ?: "0"
         val price = extractPrice(priceText)
         
-        return ProductInfo(
+        return SimpleProductInfo(
             name = titleElement.textContent?.trim() ?: "Unknown Product",
             currentPrice = price,
             vendor = "Best Buy",
@@ -88,34 +81,7 @@ private fun detectBestBuyProduct(): ProductInfo? {
     return null
 }
 
-private fun injectBiddingOverlay(productInfo: ProductInfo) {
-    // Create container for React app
-    val container = document.createElement("div").apply {
-        id = "magiccart-overlay-container"
-        setAttribute("style", """
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 999999;
-            width: 400px;
-            max-height: 80vh;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        """.trimIndent())
-    }
-    
-    document.body?.appendChild(container)
-    
-    // Mount React app
-    val root = createRoot(container)
-    root.render(EnhancedApp.create {
-        this.productInfo = productInfo
-    })
-}
-
-private fun detectWalmartProduct(): ProductInfo? {
+private fun detectWalmartProduct(): SimpleProductInfo? {
     val titleElement = document.querySelector("[data-automation-id='product-title']")
         ?: document.querySelector("h1[data-automation-id='product-title']")
     val priceElement = document.querySelector("[data-automation-id='product-price'] span")
@@ -125,7 +91,7 @@ private fun detectWalmartProduct(): ProductInfo? {
         val priceText = priceElement?.textContent ?: "0"
         val price = extractPrice(priceText)
         
-        return ProductInfo(
+        return SimpleProductInfo(
             name = titleElement.textContent?.trim() ?: "Unknown Product",
             currentPrice = price,
             vendor = "Walmart",
@@ -136,7 +102,7 @@ private fun detectWalmartProduct(): ProductInfo? {
     return null
 }
 
-private fun detectTargetProduct(): ProductInfo? {
+private fun detectTargetProduct(): SimpleProductInfo? {
     val titleElement = document.querySelector("[data-test='product-title']")
         ?: document.querySelector("h1[data-test='product-title']")
     val priceElement = document.querySelector("[data-test='product-price']")
@@ -146,7 +112,7 @@ private fun detectTargetProduct(): ProductInfo? {
         val priceText = priceElement?.textContent ?: "0"
         val price = extractPrice(priceText)
         
-        return ProductInfo(
+        return SimpleProductInfo(
             name = titleElement.textContent?.trim() ?: "Unknown Product",
             currentPrice = price,
             vendor = "Target",
@@ -157,7 +123,7 @@ private fun detectTargetProduct(): ProductInfo? {
     return null
 }
 
-private fun detectEbayProduct(): ProductInfo? {
+private fun detectEbayProduct(): SimpleProductInfo? {
     val titleElement = document.querySelector("#ebay-page-title")
         ?: document.querySelector(".x-item-title-label")
     val priceElement = document.querySelector(".Price-characteristic")
@@ -168,7 +134,7 @@ private fun detectEbayProduct(): ProductInfo? {
         val priceText = priceElement?.textContent ?: "0"
         val price = extractPrice(priceText)
         
-        return ProductInfo(
+        return SimpleProductInfo(
             name = titleElement.textContent?.trim() ?: "Unknown Product",
             currentPrice = price,
             vendor = "eBay",
@@ -180,13 +146,11 @@ private fun detectEbayProduct(): ProductInfo? {
 }
 
 private fun extractPrice(priceText: String): Double {
-    // Remove currency symbols and common formatting
     val cleanText = priceText.replace("[$,\\s]".toRegex(), "")
         .replace("USD", "")
         .replace("current price", "", ignoreCase = true)
         .trim()
     
-    // Extract first number sequence that looks like a price
     val priceMatch = "\\d+\\.?\\d*".toRegex().find(cleanText)
     return priceMatch?.value?.toDoubleOrNull() ?: 0.0
 }
@@ -221,14 +185,77 @@ private fun detectCategoryFromBreadcrumbs(): String? {
     for (selector in breadcrumbSelectors) {
         val breadcrumbs = document.querySelectorAll(selector)
         if (breadcrumbs.length > 1) {
-            // Return the second breadcrumb item (first is usually "Home")
-            return breadcrumbs[1]?.textContent?.trim()
+            return breadcrumbs.item(1)?.textContent?.trim()
         }
     }
     return null
 }
 
-data class ProductInfo(
+private fun injectSimpleOverlay(productInfo: SimpleProductInfo) {
+    // Create simple HTML overlay without React
+    val container = document.createElement("div").apply {
+        id = "magiccart-overlay-container"
+        innerHTML = """
+            <div style="
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 999999;
+                width: 350px;
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                border: 1px solid #e0e0e0;
+            ">
+                <div style="
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 16px;
+                    border-bottom: 1px solid #f0f0f0;
+                ">
+                    <h3 style="margin: 0; font-size: 18px; color: #333;">🛒 MagicCart</h3>
+                    <button onclick="this.closest('#magiccart-overlay-container').remove()" style="
+                        background: transparent;
+                        border: none;
+                        font-size: 20px;
+                        cursor: pointer;
+                        padding: 4px;
+                    ">×</button>
+                </div>
+                <div style="padding: 16px;">
+                    <div style="margin-bottom: 16px;">
+                        <p style="margin: 0 0 8px 0; font-size: 14px; font-weight: 500; color: #333;">
+                            Product: ${productInfo.name}
+                        </p>
+                        <p style="margin: 0 0 8px 0; font-size: 14px; color: #666;">
+                            Current Price: $${productInfo.currentPrice}
+                        </p>
+                        <p style="margin: 0; font-size: 14px; color: #666;">
+                            Vendor: ${productInfo.vendor}
+                        </p>
+                    </div>
+                    <button onclick="alert('Negotiation feature coming soon!')" style="
+                        width: 100%;
+                        padding: 12px 16px;
+                        background-color: #007bff;
+                        color: white;
+                        border: none;
+                        border-radius: 6px;
+                        font-size: 14px;
+                        font-weight: 500;
+                        cursor: pointer;
+                    ">Start Discount Negotiation</button>
+                </div>
+            </div>
+        """.trimIndent()
+    }
+    
+    document.body?.appendChild(container)
+}
+
+data class SimpleProductInfo(
     val name: String,
     val currentPrice: Double,
     val vendor: String,

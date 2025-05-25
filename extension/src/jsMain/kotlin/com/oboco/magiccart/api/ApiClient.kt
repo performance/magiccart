@@ -1,6 +1,6 @@
 package com.oboco.magiccart.api
 
-import com.oboco.magiccart.*
+// Temporarily simplified - will integrate with shared module in Phase 2.B
 import com.oboco.magiccart.utils.ErrorHandler
 import kotlinx.coroutines.await
 import kotlinx.browser.window
@@ -19,49 +19,29 @@ class ApiClient(private val baseUrl: String = "http://localhost:8080/api") {
         encodeDefaults = true
     }
     
-    suspend fun createBiddingSession(request: CreateBiddingSessionRequest): BiddingSessionDto {
-        return try {
-            val response = post("/bidding-sessions", request)
-            parseResponse(response)
-        } catch (e: Exception) {
-            throw ApiException(ErrorHandler.handleApiError(e, "Create Bidding Session"))
-        }
+    // Placeholder API methods - will be implemented in Phase 2.B
+    suspend fun createBiddingSession(productInfo: Any): String {
+        console.log("ApiClient: createBiddingSession called", productInfo)
+        // TODO: Implement actual API call
+        return "mock-session-id"
     }
     
-    suspend fun submitBid(sessionId: UuidString, request: SubmitBidRequest): BidDto {
-        return try {
-            val response = post("/bidding-sessions/$sessionId/bids", request)
-            parseResponse(response)
-        } catch (e: Exception) {
-            throw ApiException(ErrorHandler.handleApiError(e, "Submit Bid"))
-        }
+    suspend fun submitBid(sessionId: String, bidAmount: Double): String {
+        console.log("ApiClient: submitBid called", sessionId, bidAmount)
+        // TODO: Implement actual API call  
+        return "mock-bid-id"
     }
     
-    suspend fun getBiddingSession(sessionId: UuidString): BiddingSessionDto {
-        return try {
-            val response = get("/bidding-sessions/$sessionId")
-            parseResponse(response)
-        } catch (e: Exception) {
-            throw ApiException(ErrorHandler.handleApiError(e, "Get Bidding Session"))
-        }
+    suspend fun getVendorOffers(sessionId: String): List<String> {
+        console.log("ApiClient: getVendorOffers called", sessionId)
+        // TODO: Implement actual API call
+        return listOf("mock-offer-1", "mock-offer-2")
     }
     
-    suspend fun getVendorOffers(sessionId: UuidString): List<VendorOfferDto> {
-        return try {
-            val response = get("/bidding-sessions/$sessionId/offers")
-            parseResponse(response)
-        } catch (e: Exception) {
-            throw ApiException(ErrorHandler.handleApiError(e, "Get Vendor Offers"))
-        }
-    }
-    
-    suspend fun acceptOffer(sessionId: UuidString, offerId: UuidString): AcceptOfferResponse {
-        return try {
-            val response = post("/bidding-sessions/$sessionId/offers/$offerId/accept", Unit)
-            parseResponse(response)
-        } catch (e: Exception) {
-            throw ApiException(ErrorHandler.handleApiError(e, "Accept Offer"))
-        }
+    suspend fun acceptOffer(sessionId: String, offerId: String): Boolean {
+        console.log("ApiClient: acceptOffer called", sessionId, offerId)
+        // TODO: Implement actual API call
+        return true
     }
     
     private suspend fun get(endpoint: String): Response {
@@ -103,28 +83,25 @@ class ApiClient(private val baseUrl: String = "http://localhost:8080/api") {
 
 class ApiException(message: String) : Exception(message)
 
-// Request DTOs specific to the extension
-@kotlinx.serialization.Serializable
-data class CreateBiddingSessionRequest(
+// TODO: Phase 2.B - Replace with proper shared DTOs from :shared module
+// Temporary simplified types for Phase 2.A testing
+
+@kotlinx.serialization.Serializable  
+data class SimpleBiddingRequest(
     val productName: String,
-    val currentPrice: Decimal,
+    val currentPrice: Double,
     val vendor: String,
-    val category: String,
-    val imageUrl: String? = null,
-    val targetPrice: Decimal? = null,
-    val maxBudget: Decimal? = null
+    val category: String
 )
 
 @kotlinx.serialization.Serializable
-data class SubmitBidRequest(
-    val bidAmount: Decimal,
-    val bidType: BidType = BidType.STANDARD,
-    val timeLimit: Int? = null // minutes
+data class SimpleBidRequest(
+    val bidAmount: Double,
+    val timeLimit: Int? = null
 )
 
 @kotlinx.serialization.Serializable
-data class AcceptOfferResponse(
+data class SimpleOfferResponse(
     val success: Boolean,
-    val message: String,
-    val redirectUrl: String? = null
+    val message: String
 )
