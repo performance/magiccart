@@ -28,7 +28,9 @@ kotlin {
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
                 
-                // Browser dependencies only for now
+                // React dependencies for Phase 2.B
+                implementation("org.jetbrains.kotlin-wrappers:kotlin-react:18.2.0-pre.346")
+                implementation("org.jetbrains.kotlin-wrappers:kotlin-react-dom:18.2.0-pre.346")
                 
                 // Browser API
                 implementation(npm("@types/chrome", "0.0.246"))

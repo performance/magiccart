@@ -1,10 +1,13 @@
 package com.oboco.magiccart
 
+import com.oboco.magiccart.ui.BiddingOverlay
 import com.oboco.magiccart.utils.ErrorHandler
 import kotlinx.browser.document
 import kotlinx.browser.window
 import org.w3c.dom.Element
 import org.w3c.dom.NodeList
+import react.create
+import react.dom.client.createRoot
 
 /**
  * Content script entry point for MagicCart Chrome extension
@@ -228,85 +231,30 @@ private fun injectBiddingOverlay(productInfo: ProductInfo) {
             return
         }
         
-        // Create enhanced HTML overlay (future: replace with React components)
+        // Create container for React component
         val container = document.createElement("div").apply {
             id = "magiccart-overlay-container"
-            innerHTML = """
-                <div style="
-                    position: fixed;
-                    top: 20px;
-                    right: 20px;
-                    z-index: 999999;
-                    width: 350px;
-                    background: white;
-                    border-radius: 8px;
-                    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                    border: 1px solid #e0e0e0;
-                ">
-                    <div style="
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                        padding: 16px;
-                        border-bottom: 1px solid #f0f0f0;
-                    ">
-                        <h3 style="margin: 0; font-size: 18px; color: #333;">🛒 MagicCart</h3>
-                        <button onclick="this.closest('#magiccart-overlay-container').remove()" style="
-                            background: transparent;
-                            border: none;
-                            font-size: 20px;
-                            cursor: pointer;
-                            padding: 4px;
-                        ">×</button>
-                    </div>
-                    <div style="padding: 16px;">
-                        <div style="margin-bottom: 16px;">
-                            <p style="margin: 0 0 8px 0; font-size: 14px; font-weight: 500; color: #333;">
-                                Product: ${productInfo.name}
-                            </p>
-                            <p style="margin: 0 0 8px 0; font-size: 14px; color: #666;">
-                                Current Price: $${productInfo.currentPrice}
-                            </p>
-                            <p style="margin: 0 0 8px 0; font-size: 14px; color: #666;">
-                                Vendor: ${productInfo.vendor}
-                            </p>
-                            <p style="margin: 0; font-size: 12px; color: #999;">
-                                Category: ${productInfo.category}
-                            </p>
-                        </div>
-                        <button onclick="window.magicCartStartNegotiation && window.magicCartStartNegotiation()" style="
-                            width: 100%;
-                            padding: 12px 16px;
-                            background-color: #007bff;
-                            color: white;
-                            border: none;
-                            border-radius: 6px;
-                            font-size: 14px;
-                            font-weight: 500;
-                            cursor: pointer;
-                        ">Start Discount Negotiation</button>
-                        <div id="magiccart-status" style="
-                            margin-top: 12px;
-                            padding: 8px;
-                            background: #f8f9fa;
-                            border-radius: 4px;
-                            font-size: 12px;
-                            color: #666;
-                            text-align: center;
-                            display: none;
-                        ">Ready for Phase 2.B: API Integration</div>
-                    </div>
-                </div>
-            """.trimIndent()
         }
         
         document.body?.appendChild(container)
         
-        // Set up global function for future API integration
-        js("window.magicCartStartNegotiation = function() { console.log('MagicCart: Starting negotiation for', arguments[0] || 'detected product'); document.getElementById('magiccart-status').style.display = 'block'; }")
+        // Create and render React component
+        val root = createRoot(container)
+        val biddingOverlayElement = BiddingOverlay.create {
+            this.productInfo = productInfo
+            this.onClose = {
+                console.log("MagicCart: Closing overlay")
+                container.remove()
+            }
+            this.onStartNegotiation = { product ->
+                console.log("MagicCart: Starting negotiation for", product.name)
+                // TODO: Phase 2.B - Connect to API client
+            }
+        }
         
-        console.log("MagicCart: Overlay injected successfully")
+        root.render(biddingOverlayElement)
+        
+        console.log("MagicCart: React overlay injected successfully")
         
     } catch (e: Exception) {
         console.error("MagicCart: Error injecting overlay", e)
