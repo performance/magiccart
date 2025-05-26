@@ -1,4 +1,4 @@
-package com.oboco.magiccart
+package com.oboco.magiccart.content
 
 import com.oboco.magiccart.ui.BiddingController
 import com.oboco.magiccart.utils.ErrorHandler

@@ -1,43 +1,55 @@
 plugins {
-    kotlin("multiplatform")
-    kotlin("plugin.serialization")
+    kotlin("js")
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.25"
+}
+
+version = "0.0.5" 
+
+repositories {
+    mavenCentral()
 }
 
 kotlin {
     js(IR) {
-        binaries.executable()
         browser {
             commonWebpackConfig {
+                devtool = "inline-source-map"
                 cssSupport {
                     enabled.set(true)
                 }
             }
-            webpackTask {
-                mainOutputFileName = "content.js"
-            }
-            testTask {
-                enabled = false
+            
+            // Simple distribution without webpack complexity
+            distribution {
+                outputDirectory.set(project.projectDir.resolve("dist"))
             }
         }
+        binaries.executable()
     }
-    
+
     sourceSets {
-        val jsMain by getting {
+        val main by getting {
             dependencies {
                 implementation(project(":shared"))
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
+
+                // For Chrome extension types
+                implementation(npm("webextension-polyfill", "0.10.0"))
                 
-                // React dependencies removed - using HTML-based approach for Phase 2.B
-                // implementation("org.jetbrains.kotlin-wrappers:kotlin-react:18.2.0-pre.346")
-                // implementation("org.jetbrains.kotlin-wrappers:kotlin-react-dom:18.2.0-pre.346")
+                // React dependencies for Kotlin 1.9.25
+                implementation(platform("org.jetbrains.kotlin-wrappers:kotlin-wrappers-bom:"))
+                implementation("org.jetbrains.kotlin-wrappers:kotlin-react")
+                implementation("org.jetbrains.kotlin-wrappers:kotlin-react-dom")
+                implementation("org.jetbrains.kotlin-wrappers:kotlin-emotion")
                 
-                // Browser API
-                implementation(npm("@types/chrome", "0.0.246"))
+                // React NPM dependencies
+                implementation(npm("react", "18.2.0"))
+                implementation(npm("react-dom", "18.2.0"))
             }
         }
         
-        val jsTest by getting {
+        val test by getting {
             dependencies {
                 implementation(kotlin("test"))
             }
